@@ -1,0 +1,5 @@
+{
+	"ImportPath": "github.com/SyntropyDev/mms-api",
+	"GoVersion": "go1.3",
+	"Deps": []
+}
