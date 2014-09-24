@@ -23,8 +23,8 @@ type Member struct {
 
 	Name        string   `json:"name" val:"nonzero" merge:"true"`
 	Address     string   `json:"address" val:"nonzero" merge:"true"`
-	Description string   `json:"description" merge:"true"`
 	Phone       string   `json:"phone" merge:"true"`
+	Description string   `json:"description" merge:"true"`
 	Icon        string   `json:"icon" merge:"true"`
 	Website     string   `json:"website" merge:"true"`
 	Latitude    float64  `json:"-" merge:"true"`

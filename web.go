@@ -5,11 +5,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/SyntropyDev/mms-api/model"
 	"github.com/SyntropyDev/mms-api/mware"
+	"github.com/SyntropyDev/sqlutil"
 	"github.com/bmizerany/pat"
 	"github.com/coopernurse/gorp"
+	"github.com/lann/squirrel"
 )
 
 const (
@@ -31,20 +34,51 @@ func main() {
 
 	http.Handle("/", m)
 
-	mware.SetGetDBConnectionFunc(func() (*gorp.DbMap, error) {
-		db, err := sql.Open("sqlite3", "/tmp/post_db.bin")
-		if err != nil {
-			return nil, err
+	mware.SetGetDBConnectionFunc(db)
+
+	// listen to feeds in a background thread
+	go func() {
+		for {
+			if err := listenToFeeds(); err != nil {
+				log.Println("feed listening error: ", err)
+			}
+			time.Sleep(time.Minute * 5)
 		}
-		dbmap := &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
-		return dbmap, nil
-	})
+	}()
 
 	log.Println("Listening...")
 	err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
 	if err != nil {
 		panic(err)
 	}
+}
+
+func listenToFeeds() error {
+	dbmap, err := db()
+	if err != nil {
+		return err
+	}
+
+	feeds := []*model.Feed{}
+	query := squirrel.Select("*").From(model.TableNameFeed)
+	if err := sqlutil.Select(dbmap, query, &feeds); err != nil {
+		return err
+	}
+
+	for _, feed := range feeds {
+		feed.UpdateStories(dbmap)
+	}
+
+	return nil
+}
+
+func db() (*gorp.DbMap, error) {
+	db, err := sql.Open("sqlite3", "/tmp/post_db.bin")
+	if err != nil {
+		return nil, err
+	}
+	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
+	return dbmap, nil
 }
 
 func serveFile(name string) http.Handler {
