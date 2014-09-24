@@ -12,6 +12,7 @@ import (
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/bmizerany/pat"
 	"github.com/coopernurse/gorp"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/lann/squirrel"
 )
 
@@ -73,11 +74,18 @@ func listenToFeeds() error {
 }
 
 func db() (*gorp.DbMap, error) {
-	db, err := sql.Open("sqlite3", "/tmp/post_db.bin")
+	db, err := sql.Open("mysql", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return nil, err
 	}
-	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.MySQLDialect{}}
+	dbmap := &gorp.DbMap{
+		Db:      db,
+		Dialect: gorp.MySQLDialect{Engine: "InnoDB", Encoding: "UTF8"},
+	}
+	dbmap.AddTableWithName(model.Category{}, model.TableNameCategory).SetKeys(true, "ID")
+	dbmap.AddTableWithName(model.Feed{}, model.TableNameFeed).SetKeys(true, "ID")
+	dbmap.AddTableWithName(model.Story{}, model.TableNameStory).SetKeys(true, "ID")
+	dbmap.AddTableWithName(model.Member{}, model.TableNameMember).SetKeys(true, "ID")
 	return dbmap, nil
 }
 
