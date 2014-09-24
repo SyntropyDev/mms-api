@@ -1,5 +1,98 @@
 {
 	"ImportPath": "github.com/SyntropyDev/mms-api",
 	"GoVersion": "go1.3",
-	"Deps": []
+	"Deps": [
+		{
+			"ImportPath": "github.com/ChimeraCoder/anaconda",
+			"Rev": "47bdd6d45c8e335a34a5f4b94cd4ffbe1c172621"
+		},
+		{
+			"ImportPath": "github.com/ChimeraCoder/tokenbucket",
+			"Rev": "c5a927568de7aad8a58127d80bcd36ca4e71e454"
+		},
+		{
+			"ImportPath": "github.com/SyntropyDev/httperr",
+			"Rev": "c91f8e70fd32c38c01f00919c1e8b2c73fef1c94"
+		},
+		{
+			"ImportPath": "github.com/SyntropyDev/merge",
+			"Rev": "807996a7b28146097ddf9fe8611d97648aa933bb"
+		},
+		{
+			"ImportPath": "github.com/SyntropyDev/milli",
+			"Rev": "1da59d456fb3c7258b7b62172225b6f77ccbff0b"
+		},
+		{
+			"ImportPath": "github.com/SyntropyDev/querystr",
+			"Rev": "eeb150c3eacf655e336518cb0cce859a746b6b74"
+		},
+		{
+			"ImportPath": "github.com/SyntropyDev/sqlutil",
+			"Rev": "23a02880a89bc39b5499ba83a21f70f1eb7639f7"
+		},
+		{
+			"ImportPath": "github.com/SyntropyDev/val",
+			"Rev": "e1c0be1b18b7b586ca1542f24b70e4d729c9a1d7"
+		},
+		{
+			"ImportPath": "github.com/bmizerany/pat",
+			"Rev": "b8a35001b773c267eb260a691f4e5499a3531600"
+		},
+		{
+			"ImportPath": "github.com/coopernurse/gorp",
+			"Comment": "v1.6.1",
+			"Rev": "31a7c02fabe8965c887cd243e381ce08328f3741"
+		},
+		{
+			"ImportPath": "github.com/garyburd/go-oauth/oauth",
+			"Rev": "e63dca786bb00b47f30463640b1fddf0e73f8376"
+		},
+		{
+			"ImportPath": "github.com/go-sql-driver/mysql",
+			"Comment": "v1.2-1-g7094cf0",
+			"Rev": "7094cf0331ed6bde3cd75aa5d1da0e7764b526c9"
+		},
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "14f550f51af52180c2eefed15e5fd18d63c0a64a"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Rev": "14cafe28513321476c73967a5a4f3454b6129c46"
+		},
+		{
+			"ImportPath": "github.com/huandu/facebook",
+			"Rev": "b5a3d636d02b32fb86abfaae7b95ed563cff442d"
+		},
+		{
+			"ImportPath": "github.com/jteeuwen/go-pkg-rss",
+			"Rev": "326d76d501cc7e634b1ef24570fa158998fe1ca2"
+		},
+		{
+			"ImportPath": "github.com/jteeuwen/go-pkg-xmlx",
+			"Rev": "745ca8545530e367a84936b2f67db0e502d960fb"
+		},
+		{
+			"ImportPath": "github.com/lann/builder",
+			"Rev": "e392a3807936973dc23108a6b108ade8567f1bc7"
+		},
+		{
+			"ImportPath": "github.com/lann/squirrel",
+			"Rev": "f1c5650cbd5ad7333b757df5f23bb1a3eea9e3b0"
+		},
+		{
+			"ImportPath": "github.com/mndrix/ps",
+			"Rev": "33ddf69629c1bcea76b04f4a4e9e00e4cce82eb6"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega/format",
+			"Comment": "v1.0",
+			"Rev": "a78ae492d53aad5a7a232d0d0462c14c400e3ee7"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega/matchers",
+			"Comment": "v1.0",
+			"Rev": "a78ae492d53aad5a7a232d0d0462c14c400e3ee7"
+		}
+	]
 }
