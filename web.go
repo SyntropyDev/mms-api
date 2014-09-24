@@ -59,6 +59,7 @@ func listenToFeeds() error {
 	if err != nil {
 		return err
 	}
+	defer dbmap.Db.Close()
 
 	feeds := []*model.Feed{}
 	query := squirrel.Select("*").From(model.TableNameFeed)
