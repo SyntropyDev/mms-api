@@ -77,11 +77,15 @@ func db() (*gorp.DbMap, error) {
 	db, err := sql.Open("mysql", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return nil, err
+	} else {
+		log.Println("Database Connection Established")
 	}
+
 	dbmap := &gorp.DbMap{
 		Db:      db,
 		Dialect: gorp.MySQLDialect{Engine: "InnoDB", Encoding: "UTF8"},
 	}
+
 	dbmap.AddTableWithName(model.Category{}, model.TableNameCategory).SetKeys(true, "ID")
 	dbmap.AddTableWithName(model.Feed{}, model.TableNameFeed).SetKeys(true, "ID")
 	dbmap.AddTableWithName(model.Story{}, model.TableNameStory).SetKeys(true, "ID")
