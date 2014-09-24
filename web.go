@@ -75,7 +75,7 @@ func listenToFeeds() error {
 }
 
 func db() (*gorp.DbMap, error) {
-	db, err := sql.Open("mysql", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("mysql", os.Getenv("CLEARDB_DATABASE_URL"))
 	if err != nil {
 		return nil, err
 	} else {
