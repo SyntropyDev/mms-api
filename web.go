@@ -74,7 +74,7 @@ func listenToFeeds() error {
 }
 
 func db() (*gorp.DbMap, error) {
-	db, err := sql.Open("mysql", os.Getenv("CLEARDB_DATABASE_URL"))
+	db, err := sql.Open("mysql", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func db() (*gorp.DbMap, error) {
 	dbmap.AddTableWithName(model.Member{}, model.TableNameMember).SetKeys(true, "ID")
 
 	if err := dbmap.CreateTablesIfNotExists(); err != nil {
-		return err
+		return nil, err
 	}
 
 	return dbmap, nil
