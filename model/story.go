@@ -320,7 +320,7 @@ func NewStoryRSS(member *Member, feed *Feed, item *feeder.Item) *Story {
 
 func (story *Story) Validate() error {
 	if valid, errMap := val.Struct(story); !valid {
-		return val.ErrorFromMap(errMap)
+		return ErrorFromMap(errMap)
 	}
 	return nil
 }

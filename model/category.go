@@ -1,6 +1,9 @@
 package model
 
 import (
+	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/SyntropyDev/milli"
@@ -25,7 +28,7 @@ type Category struct {
 
 func (c *Category) Validate() error {
 	if valid, errMap := val.Struct(c); !valid {
-		return val.ErrorFromMap(errMap)
+		return ErrorFromMap(errMap)
 	}
 	return nil
 }
@@ -53,4 +56,13 @@ func (c *Category) TableId() int64 {
 
 func (c *Category) Delete() {
 	c.Deleted = true
+}
+
+func ErrorFromMap(errMap map[string]error) error {
+	errs := []string{}
+	for key, err := range errMap {
+		nErr := fmt.Sprintf("%s - %s", key, err)
+		errs = append(errs, nErr)
+	}
+	return errors.New(strings.Join(errs, ","))
 }

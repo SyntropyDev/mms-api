@@ -37,7 +37,7 @@ func (f *Feed) UpdateStories(s gorp.SqlExecutor) error {
 
 func (f *Feed) Validate() error {
 	if valid, errMap := val.Struct(f); !valid {
-		return val.ErrorFromMap(errMap)
+		return ErrorFromMap(errMap)
 	}
 	return nil
 }

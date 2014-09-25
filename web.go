@@ -1,4 +1,4 @@
-package main
+package cloud
 
 import (
 	"database/sql"
@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/SyntropyDev/mms-api/model"
-	"github.com/SyntropyDev/mms-api/mware"
+	"./model"
+	"./mware"
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/bmizerany/pat"
 	"github.com/coopernurse/gorp"
@@ -20,7 +20,7 @@ const (
 	prefix = "/api/v1"
 )
 
-func main() {
+func init() {
 	m := pat.New()
 	m.Get(prefix+"/community", serveFile("public/community.json"))
 
@@ -47,11 +47,11 @@ func main() {
 		}
 	}()
 
-	log.Println("Listening...")
-	err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
-	if err != nil {
-		panic(err)
-	}
+	// log.Println("Listening...")
+	// err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
+	// if err != nil {
+	// 	panic(err)
+	// }
 }
 
 func listenToFeeds() error {

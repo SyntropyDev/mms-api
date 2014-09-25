@@ -22,7 +22,7 @@ type Member struct {
 	Object  string `db:"-" json:"object"`
 
 	Name        string   `json:"name" val:"nonzero" merge:"true"`
-	Address     string   `json:"address" val:"nonzero" merge:"true"`
+	Address     string   `json:"address" merge:"true"`
 	Phone       string   `json:"phone" merge:"true"`
 	Description string   `json:"description" merge:"true"`
 	Icon        string   `json:"icon" merge:"true"`
@@ -72,7 +72,7 @@ func (m *Member) SetHashtags(s []string) {
 
 func (m *Member) Validate() error {
 	if valid, errMap := val.Struct(m); !valid {
-		return val.ErrorFromMap(errMap)
+		return ErrorFromMap(errMap)
 	}
 	return nil
 }
