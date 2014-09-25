@@ -63,7 +63,7 @@ func listenToFeeds() error {
 	}
 
 	for _, feed := range feeds {
-		feed.UpdateStories(dbmap)
+		return feed.UpdateStories(dbmap)
 	}
 
 	return nil
