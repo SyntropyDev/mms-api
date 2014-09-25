@@ -18,11 +18,17 @@ const (
 )
 
 func init() {
+
+	SetGetDBConnectionFunc(db)
+
 	m := pat.New()
 	m.Get(prefix+"/community", serveFile("config/community.json"))
 
 	m.Get(prefix+"/members", GetAll(&Member{}))
 	m.Get(prefix+"/members/:id", GetByID(&Member{}))
+
+	m.Get(prefix+"/feeds", GetAll(&Feed{}))
+	m.Get(prefix+"/feeds/:id", GetByID(&Feed{}))
 
 	m.Get(prefix+"/categories", GetAll(&Category{}))
 	m.Get(prefix+"/categories/:id", GetByID(&Category{}))
@@ -35,8 +41,6 @@ func init() {
 	}))
 
 	http.Handle("/", m)
-
-	SetGetDBConnectionFunc(db)
 
 	// log.Println("Listening...")
 	// err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
@@ -66,7 +70,7 @@ func listenToFeeds() error {
 }
 
 func db() (*gorp.DbMap, error) {
-	db, err := sql.Open("mysql", "root@cloudsql(shale-cloud:db)/mms")
+	db, err := sql.Open("mysql", "root@cloudsql(mms-api:db)/mms")
 	if err != nil {
 		return nil, err
 	} else {
