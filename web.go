@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"./model"
@@ -75,7 +74,7 @@ func listenToFeeds() error {
 }
 
 func db() (*gorp.DbMap, error) {
-	db, err := sql.Open("mysql", os.Getenv("CLEARDB_DATABASE_URL"))
+	db, err := sql.Open("mysql", "root@cloudsql(shale-cloud:db)/mms")
 	if err != nil {
 		return nil, err
 	} else {
