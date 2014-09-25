@@ -9,7 +9,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/SyntropyDev/mms-api/model"
+	"../model"
 	"github.com/coopernurse/gorp"
 	_ "github.com/go-sql-driver/mysql"
 )
