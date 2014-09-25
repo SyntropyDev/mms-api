@@ -4,10 +4,8 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
-	"time"
 
-	"./model"
-	"./mware"
+	"github.com/SyntropyDev/httperr"
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/bmizerany/pat"
 	"github.com/coopernurse/gorp"
@@ -21,30 +19,24 @@ const (
 
 func init() {
 	m := pat.New()
-	m.Get(prefix+"/community", serveFile("public/community.json"))
+	m.Get(prefix+"/community", serveFile("config/community.json"))
 
-	m.Get(prefix+"/members", mware.GetAll(&model.Member{}))
-	m.Get(prefix+"/members/:id", mware.GetByID(&model.Member{}))
+	m.Get(prefix+"/members", GetAll(&Member{}))
+	m.Get(prefix+"/members/:id", GetByID(&Member{}))
 
-	m.Get(prefix+"/categories", mware.GetAll(&model.Category{}))
-	m.Get(prefix+"/categories/:id", mware.GetByID(&model.Category{}))
+	m.Get(prefix+"/categories", GetAll(&Category{}))
+	m.Get(prefix+"/categories/:id", GetByID(&Category{}))
 
-	m.Get(prefix+"/stories", mware.GetAll(&model.Story{}))
-	m.Get(prefix+"/stories/:id", mware.GetByID(&model.Story{}))
+	m.Get(prefix+"/stories", GetAll(&Story{}))
+	m.Get(prefix+"/stories/:id", GetByID(&Story{}))
+
+	m.Get("/tasks/feeds", httperr.Handler(func(w http.ResponseWriter, r *http.Request) error {
+		return listenToFeeds()
+	}))
 
 	http.Handle("/", m)
 
-	mware.SetGetDBConnectionFunc(db)
-
-	// listen to feeds in a background thread
-	go func() {
-		for {
-			if err := listenToFeeds(); err != nil {
-				log.Println("feed listening error: ", err)
-			}
-			time.Sleep(time.Minute * 5)
-		}
-	}()
+	SetGetDBConnectionFunc(db)
 
 	// log.Println("Listening...")
 	// err := http.ListenAndServe(":"+os.Getenv("PORT"), nil)
@@ -60,8 +52,8 @@ func listenToFeeds() error {
 	}
 	defer dbmap.Db.Close()
 
-	feeds := []*model.Feed{}
-	query := squirrel.Select("*").From(model.TableNameFeed)
+	feeds := []*Feed{}
+	query := squirrel.Select("*").From(TableNameFeed)
 	if err := sqlutil.Select(dbmap, query, &feeds); err != nil {
 		return err
 	}
@@ -86,10 +78,10 @@ func db() (*gorp.DbMap, error) {
 		Dialect: gorp.MySQLDialect{Engine: "InnoDB", Encoding: "UTF8"},
 	}
 
-	dbmap.AddTableWithName(model.Category{}, model.TableNameCategory).SetKeys(true, "ID")
-	dbmap.AddTableWithName(model.Feed{}, model.TableNameFeed).SetKeys(true, "ID")
-	dbmap.AddTableWithName(model.Story{}, model.TableNameStory).SetKeys(true, "ID")
-	dbmap.AddTableWithName(model.Member{}, model.TableNameMember).SetKeys(true, "ID")
+	dbmap.AddTableWithName(Category{}, TableNameCategory).SetKeys(true, "ID")
+	dbmap.AddTableWithName(Feed{}, TableNameFeed).SetKeys(true, "ID")
+	dbmap.AddTableWithName(Story{}, TableNameStory).SetKeys(true, "ID")
+	dbmap.AddTableWithName(Member{}, TableNameMember).SetKeys(true, "ID")
 
 	if err := dbmap.CreateTablesIfNotExists(); err != nil {
 		return nil, err

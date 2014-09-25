@@ -1,4 +1,4 @@
-package mware
+package cloud
 
 import (
 	"encoding/json"

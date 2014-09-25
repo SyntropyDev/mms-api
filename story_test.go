@@ -1,4 +1,4 @@
-package model_test
+package cloud_test
 
 import (
 	"encoding/json"
