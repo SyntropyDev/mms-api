@@ -15,6 +15,9 @@ import (
 	"github.com/huandu/facebook"
 	"github.com/jteeuwen/go-pkg-rss"
 	"github.com/jteeuwen/go-pkg-xmlx"
+
+	"appengine"
+	"appengine/urlfetch"
 )
 
 const (
@@ -30,7 +33,7 @@ const (
 	FeedTypeRSS      FeedType = "rss"
 )
 
-func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
+func (ft FeedType) GetStories(c appengine.Context, s gorp.SqlExecutor, m *Member, f *Feed) error {
 	switch ft {
 	case FeedTypeRSS:
 		itemHandler := func(
@@ -55,6 +58,7 @@ func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 		anaconda.SetConsumerKey(os.Getenv("twitterApiKey"))
 		anaconda.SetConsumerSecret(os.Getenv("twitterApiSecret"))
 		api := anaconda.NewTwitterApi("", "")
+		api.HttpClient = urlfetch.Client(c)
 
 		tweets, err := api.GetUserTimeline(v)
 		if err != nil {
@@ -69,6 +73,8 @@ func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 		app := facebook.New(os.Getenv("facebookApiID"), os.Getenv("facebookAppSecret"))
 		app.RedirectUri = "http://syntropy.io"
 		session := app.Session(app.AppAccessToken())
+		session.HttpClient = urlfetch.Client(c)
+
 		route := fmt.Sprintf("/%s/posts", f.Identifier)
 		result, err := session.Api(route, facebook.GET, nil)
 		if err != nil {
@@ -118,37 +124,48 @@ type Story struct {
 	Deleted bool   `json:"deleted" merge:"true"`
 	Object  string `db:"-" json:"object"`
 
-	MemberID       int64    `json:"memberId" val:"nonzero"`
-	MemberName     string   `json:"memberName"`
-	FeedID         int64    `json:"memberId" val:"nonzero"`
-	FeedIdentifier string   `json:"feedIdentifier"`
-	Timestamp      int64    `json:"timestamp"`
-	Body           string   `json:"body"`
-	SourceType     string   `json:"sourceType"`
-	SourceURL      string   `json:"sourceUrl"`
-	SourceID       string   `json:"sourceID"`
-	Score          int64    `json:"score"`
-	Latitude       float64  `json:"-"`
-	Longitude      float64  `json:"-"`
-	LinksRaw       string   `json:"-"`
-	ImagesRaw      string   `json:"-"`
-	HashtagsRaw    string   `json:"-"`
-	Links          []string `db:"-" json:"links"`
-	Images         []string `db:"-" json:"images"`
-	HashTags       []string `db:"-" json:"hashTags"`
-	Location       []int64  `db:"-" json:"location"`
+	MemberID       int64     `json:"memberId" val:"nonzero"`
+	MemberName     string    `json:"memberName"`
+	FeedID         int64     `json:"memberId" val:"nonzero"`
+	FeedIdentifier string    `json:"feedIdentifier"`
+	Timestamp      int64     `json:"timestamp"`
+	Body           string    `json:"body"`
+	SourceType     string    `json:"sourceType"`
+	SourceURL      string    `json:"sourceUrl"`
+	SourceID       string    `json:"sourceID"`
+	Score          int64     `json:"score"`
+	Latitude       float64   `json:"-"`
+	Longitude      float64   `json:"-"`
+	LinksRaw       string    `json:"-"`
+	ImagesRaw      string    `json:"-"`
+	HashtagsRaw    string    `json:"-"`
+	Links          []string  `db:"-" json:"links"`
+	Images         []string  `db:"-" json:"images"`
+	Hashtags       []string  `db:"-" json:"hashTags"`
+	Location       []float64 `db:"-" json:"location"`
 }
 
 func (story *Story) LinksSlice() []string {
-	return strings.Split(story.LinksRaw, ",")
+	return sliceFromString(story.LinksRaw)
 }
 
 func (story *Story) ImagesSlice() []string {
-	return strings.Split(story.ImagesRaw, ",")
+	return sliceFromString(story.ImagesRaw)
 }
 
 func (story *Story) HashtagsSlice() []string {
-	return strings.Split(story.HashtagsRaw, ",")
+	return sliceFromString(story.HashtagsRaw)
+}
+
+func (story *Story) LocationCoords() []float64 {
+	return []float64{story.Latitude, story.Longitude}
+}
+
+func sliceFromString(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	return strings.Split(s, ",")
 }
 
 func (story *Story) CalculateScore(s gorp.SqlExecutor) error {
@@ -158,13 +175,13 @@ func (story *Story) CalculateScore(s gorp.SqlExecutor) error {
 	}
 
 	score := 0
-	if len(story.Images) > 0 {
+	if len(story.ImagesSlice()) > 0 {
 		score += 10
 	}
-	if len(story.Links) > 0 {
+	if len(story.LinksSlice()) > 0 {
 		score += 2
 	}
-	if len(story.HashTags) > 0 {
+	if len(story.HashtagsSlice()) > 0 {
 		score += 4
 	}
 	if story.Latitude != 0.0 {
@@ -349,6 +366,14 @@ func (story *Story) PostInsert(s gorp.SqlExecutor) error {
 	m.SetHashtags(hashtags)
 
 	s.Update(m)
+	return nil
+}
+
+func (story *Story) PostGet(s gorp.SqlExecutor) error {
+	story.Images = story.ImagesSlice()
+	story.Hashtags = story.HashtagsSlice()
+	story.Location = story.LocationCoords()
+	story.Object = ObjectNameMember
 	return nil
 }
 

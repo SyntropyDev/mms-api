@@ -21,23 +21,23 @@ type Member struct {
 	Deleted bool   `json:"deleted" merge:"true"`
 	Object  string `db:"-" json:"object"`
 
-	Name        string   `json:"name" val:"nonzero" merge:"true"`
-	Address     string   `json:"address" merge:"true"`
-	Phone       string   `json:"phone" merge:"true"`
-	Description string   `json:"description" merge:"true"`
-	Icon        string   `json:"icon" merge:"true"`
-	Website     string   `json:"website" merge:"true"`
-	Latitude    float64  `json:"-" merge:"true"`
-	Longitude   float64  `json:"-" merge:"true"`
-	ImagesRaw   string   `json:"-"`
-	HashtagsRaw string   `json:"-"`
-	Images      []string `db:"-" json:"images"`
-	Hashtags    []string `db:"-" json:"hashTags"`
-	Location    []int64  `db:"-" json:"location"`
+	Name        string    `json:"name" val:"nonzero" merge:"true"`
+	Address     string    `json:"address" merge:"true"`
+	Phone       string    `json:"phone" merge:"true"`
+	Description string    `json:"description" merge:"true"`
+	Icon        string    `json:"icon" merge:"true"`
+	Website     string    `json:"website" merge:"true"`
+	Latitude    float64   `json:"-" merge:"true"`
+	Longitude   float64   `json:"-" merge:"true"`
+	ImagesRaw   string    `json:"-"`
+	HashtagsRaw string    `json:"-"`
+	Images      []string  `db:"-" json:"images"`
+	Hashtags    []string  `db:"-" json:"hashTags"`
+	Location    []float64 `db:"-" json:"location"`
 }
 
 func (m *Member) ImagesSlice() []string {
-	return strings.Split(m.ImagesRaw, ",")
+	return sliceFromString(m.ImagesRaw)
 }
 
 func (m *Member) SetImages(s []string) {
@@ -48,7 +48,7 @@ func (m *Member) SetImages(s []string) {
 }
 
 func (m *Member) HashtagsSlice() []string {
-	return strings.Split(m.HashtagsRaw, ",")
+	return sliceFromString(m.HashtagsRaw)
 }
 
 func (m *Member) SetHashtags(s []string) {
@@ -56,6 +56,10 @@ func (m *Member) SetHashtags(s []string) {
 		s = s[:5]
 	}
 	m.HashtagsRaw = strings.Join(s, ",")
+}
+
+func (m *Member) LocationCoords() []float64 {
+	return []float64{m.Latitude, m.Longitude}
 }
 
 // func (u *User) SetPassword(p *Password) {
@@ -86,6 +90,14 @@ func (m *Member) PreInsert(s gorp.SqlExecutor) error {
 func (m *Member) PreUpdate(s gorp.SqlExecutor) error {
 	m.Updated = milli.Timestamp(time.Now())
 	return m.Validate()
+}
+
+func (m *Member) PostGet(s gorp.SqlExecutor) error {
+	m.Images = m.ImagesSlice()
+	m.Hashtags = m.HashtagsSlice()
+	m.Location = m.LocationCoords()
+	m.Object = ObjectNameMember
+	return nil
 }
 
 // CrudResource interface

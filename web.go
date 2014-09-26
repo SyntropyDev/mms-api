@@ -11,6 +11,8 @@ import (
 	"github.com/coopernurse/gorp"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/lann/squirrel"
+
+	"appengine"
 )
 
 const (
@@ -37,7 +39,8 @@ func init() {
 	m.Get(prefix+"/stories/:id", GetByID(&Story{}))
 
 	m.Get("/tasks/feeds", httperr.Handler(func(w http.ResponseWriter, r *http.Request) error {
-		return listenToFeeds()
+		c := appengine.NewContext(r)
+		return listenToFeeds(c)
 	}))
 
 	http.Handle("/", m)
@@ -49,7 +52,7 @@ func init() {
 	// }
 }
 
-func listenToFeeds() error {
+func listenToFeeds(c appengine.Context) error {
 	dbmap, err := db()
 	if err != nil {
 		return err
@@ -63,7 +66,9 @@ func listenToFeeds() error {
 	}
 
 	for _, feed := range feeds {
-		return feed.UpdateStories(dbmap)
+		if err := feed.UpdateStories(c, dbmap); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -96,6 +101,10 @@ func db() (*gorp.DbMap, error) {
 
 func serveFile(name string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,HEAD,OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type,x-requested-with")
+		w.Header().Set("Content-Type", "application/json")
 		http.ServeFile(w, r, name)
 	})
 }

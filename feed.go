@@ -7,6 +7,8 @@ import (
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/SyntropyDev/val"
 	"github.com/coopernurse/gorp"
+
+	"appengine"
 )
 
 const (
@@ -27,12 +29,12 @@ type Feed struct {
 	LastRetrieved int64  `json:"-"`
 }
 
-func (f *Feed) UpdateStories(s gorp.SqlExecutor) error {
+func (f *Feed) UpdateStories(c appengine.Context, s gorp.SqlExecutor) error {
 	m := &Member{}
 	if err := sqlutil.SelectOneRelation(s, TableNameMember, f.MemberID, m); err != nil {
 		return err
 	}
-	return FeedType(f.Type).GetStories(s, m, f)
+	return FeedType(f.Type).GetStories(c, s, m, f)
 }
 
 func (f *Feed) Validate() error {
@@ -51,6 +53,11 @@ func (u *Feed) PreInsert(s gorp.SqlExecutor) error {
 func (u *Feed) PreUpdate(s gorp.SqlExecutor) error {
 	u.Updated = milli.Timestamp(time.Now())
 	return u.Validate()
+}
+
+func (m *Feed) PostGet(s gorp.SqlExecutor) error {
+	m.Object = ObjectNameFeed
+	return nil
 }
 
 // CrudResource interface
