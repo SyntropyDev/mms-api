@@ -1,4 +1,0 @@
-cron:
-- description: get feeds
-  url: /tasks/feeds
-  schedule: every 5 mins

@@ -1,4 +1,4 @@
-package cloud
+package model
 
 import (
 	"fmt"
@@ -15,9 +15,6 @@ import (
 	"github.com/huandu/facebook"
 	"github.com/jteeuwen/go-pkg-rss"
 	"github.com/jteeuwen/go-pkg-xmlx"
-
-	"appengine"
-	"appengine/urlfetch"
 )
 
 const (
@@ -33,7 +30,7 @@ const (
 	FeedTypeRSS      FeedType = "rss"
 )
 
-func (ft FeedType) GetStories(c appengine.Context, s gorp.SqlExecutor, m *Member, f *Feed) error {
+func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 	switch ft {
 	case FeedTypeRSS:
 		itemHandler := func(
@@ -58,7 +55,6 @@ func (ft FeedType) GetStories(c appengine.Context, s gorp.SqlExecutor, m *Member
 		anaconda.SetConsumerKey(os.Getenv("twitterApiKey"))
 		anaconda.SetConsumerSecret(os.Getenv("twitterApiSecret"))
 		api := anaconda.NewTwitterApi("", "")
-		api.HttpClient = urlfetch.Client(c)
 
 		tweets, err := api.GetUserTimeline(v)
 		if err != nil {
@@ -73,7 +69,6 @@ func (ft FeedType) GetStories(c appengine.Context, s gorp.SqlExecutor, m *Member
 		app := facebook.New(os.Getenv("facebookApiID"), os.Getenv("facebookAppSecret"))
 		app.RedirectUri = "http://syntropy.io"
 		session := app.Session(app.AppAccessToken())
-		session.HttpClient = urlfetch.Client(c)
 
 		route := fmt.Sprintf("/%s/posts", f.Identifier)
 		result, err := session.Api(route, facebook.GET, nil)
