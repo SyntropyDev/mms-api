@@ -9,7 +9,8 @@ ADD . /go/src/github.com/SyntropyDev/mms-api
 # (You may fetch or manage dependencies here,
 # either manually or with a tool like "godep".)
 RUN go get github.com/tools/godep
-RUN godep save
+WORKDIR /go/src/github.com/SyntropyDev/mms-api
+RUN godep restore
 RUN go install github.com/SyntropyDev/mms-api
 
 # Run the outyet command by default when the container starts.
