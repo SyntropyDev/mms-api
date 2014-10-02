@@ -2,16 +2,19 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/SyntropyDev/mms-api/model"
 	"github.com/SyntropyDev/mms-api/mware"
-	"github.com/SyntropyDev/sqlutil"
 	"github.com/bmizerany/pat"
 	"github.com/coopernurse/gorp"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/lann/squirrel"
 )
 
 const (
@@ -29,6 +32,16 @@ var (
 )
 
 func main() {
+	initConfig()
+	dbmap, err := db()
+	if err != nil {
+		panic(err)
+	}
+	if err := dbmap.CreateTablesIfNotExists(); err != nil {
+		panic(err)
+	}
+	mware.SetGetDBConnectionFunc(db)
+
 	m := pat.New()
 	m.Get(prefix+"/community", mware.ConstantHandler(&community))
 
@@ -44,40 +57,52 @@ func main() {
 	m.Get(prefix+"/stories", mware.GetAll(&model.Story{}))
 	m.Get(prefix+"/stories/:id", mware.GetByID(&model.Story{}))
 
-	mware.SetGetDBConnectionFunc(db)
+	go listenToFeedsInBackground()
 
 	http.Handle("/", m)
 	log.Println("Listening...")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
+	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
 	}
 }
 
-func listenToFeeds() error {
-	dbmap, err := db()
+func listenToFeedsInBackground() {
+	for {
+		err := func() error {
+			dbmap, err := db()
+			if err != nil {
+				return err
+			}
+			defer dbmap.Db.Close()
+
+			return model.ListenToFeeds(dbmap)
+		}()
+		if err != nil {
+			fmt.Println("LISTEN TO FEEDS: ", err)
+		}
+		time.Sleep(time.Minute * 10)
+	}
+}
+
+func initConfig() error {
+	b, err := ioutil.ReadFile("./config.json")
 	if err != nil {
 		return err
 	}
-	defer dbmap.Db.Close()
 
-	feeds := []*model.Feed{}
-	query := squirrel.Select("*").From(model.TableNameFeed)
-	if err := sqlutil.Select(dbmap, query, &feeds); err != nil {
+	config := map[string]string{}
+	if err := json.Unmarshal(b, &config); err != nil {
 		return err
 	}
 
-	for _, feed := range feeds {
-		if err := feed.UpdateStories(dbmap); err != nil {
-			return err
-		}
+	for key, value := range config {
+		os.Setenv(key, value)
 	}
-
 	return nil
 }
 
 func db() (*gorp.DbMap, error) {
-	db, err := sql.Open("mysql", "root@cloudsql(mms-api:db)/mms")
+	db, err := sql.Open("mysql", os.Getenv("mysql"))
 	if err != nil {
 		return nil, err
 	} else {
@@ -93,10 +118,6 @@ func db() (*gorp.DbMap, error) {
 	dbmap.AddTableWithName(model.Feed{}, model.TableNameFeed).SetKeys(true, "ID")
 	dbmap.AddTableWithName(model.Story{}, model.TableNameStory).SetKeys(true, "ID")
 	dbmap.AddTableWithName(model.Member{}, model.TableNameMember).SetKeys(true, "ID")
-
-	if err := dbmap.CreateTablesIfNotExists(); err != nil {
-		return nil, err
-	}
 
 	return dbmap, nil
 }

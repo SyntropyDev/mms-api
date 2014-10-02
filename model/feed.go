@@ -7,6 +7,7 @@ import (
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/SyntropyDev/val"
 	"github.com/coopernurse/gorp"
+	"github.com/lann/squirrel"
 )
 
 const (
@@ -25,6 +26,21 @@ type Feed struct {
 	Type          string `json:"type" val:"in(twitter,facebook,rss)" merge:"true"`
 	Identifier    string `json:"identifier" val:"nonzero" merge:"true"`
 	LastRetrieved int64  `json:"-"`
+}
+
+func ListenToFeeds(s gorp.SqlExecutor) error {
+	feeds := []*Feed{}
+	query := squirrel.Select("*").From(TableNameFeed)
+	if err := sqlutil.Select(s, query, &feeds); err != nil {
+		return err
+	}
+
+	for _, feed := range feeds {
+		if err := feed.UpdateStories(s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (f *Feed) UpdateStories(s gorp.SqlExecutor) error {

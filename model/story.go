@@ -45,7 +45,7 @@ func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 		}
 		feed := feeder.New(1, true, nil, itemHandler)
 		if err := feed.Fetch(f.Identifier, nil); err != nil {
-			return err
+			fmt.Println(err)
 		}
 	case FeedTypeTwitter:
 		v := url.Values{}
@@ -58,7 +58,7 @@ func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 
 		tweets, err := api.GetUserTimeline(v)
 		if err != nil {
-			return err
+			fmt.Println(err)
 		}
 
 		for _, t := range tweets {
@@ -73,12 +73,12 @@ func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 		route := fmt.Sprintf("/%s/posts", f.Identifier)
 		result, err := session.Api(route, facebook.GET, nil)
 		if err != nil {
-			return err
+			fmt.Println(err)
 		}
 
 		posts := &FacebookPosts{}
 		if err := result.Decode(posts); err != nil {
-			return err
+			fmt.Println(err)
 		}
 
 		for _, post := range posts.Data {
@@ -211,6 +211,8 @@ func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
 
 	sourceURL := fmt.Sprintf("https://www.facebook.com/%s/posts/%s", feed.Identifier, post.Id)
 
+	id := strings.Split(post.Id, "_")
+
 	return &Story{
 		MemberID:       member.ID,
 		MemberName:     member.Name,
@@ -220,7 +222,7 @@ func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
 		Body:           text,
 		SourceType:     string(FeedTypeFacebook),
 		SourceURL:      sourceURL,
-		SourceID:       post.Id,
+		SourceID:       id[1],
 		Latitude:       0.0,
 		Longitude:      0.0,
 		Score:          int64(len(post.Likes.Data)),
@@ -365,6 +367,7 @@ func (story *Story) PostInsert(s gorp.SqlExecutor) error {
 }
 
 func (story *Story) PostGet(s gorp.SqlExecutor) error {
+	story.Links = story.LinksSlice()
 	story.Images = story.ImagesSlice()
 	story.Hashtags = story.HashtagsSlice()
 	story.Location = story.LocationCoords()
@@ -375,7 +378,7 @@ func (story *Story) PostGet(s gorp.SqlExecutor) error {
 // CrudResource interface
 
 func (story *Story) TableName() string {
-	return TableNameFeed
+	return TableNameStory
 }
 
 func (story *Story) TableId() int64 {
