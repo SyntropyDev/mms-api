@@ -13,12 +13,9 @@ func ConstantHandler(src interface{}) httperr.Handler {
 	}
 }
 
-func ServeFile(name string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,HEAD,OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type,x-requested-with")
-		w.Header().Set("Content-Type", "application/json")
+func ServeFile(name string) httperr.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
 		http.ServeFile(w, r, name)
-	})
+		return nil
+	}
 }
