@@ -83,7 +83,9 @@ func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 
 		for _, post := range posts.Data {
 			story := NewFacebookStory(m, f, post)
-			s.Insert(story)
+			if story != nil {
+				s.Insert(story)
+			}
 		}
 	}
 	return nil
@@ -200,16 +202,12 @@ func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
 		t = time.Now()
 	}
 
-	// try message, then story, then title
-	text := post.Message
-	if text == "" {
-		text = post.Story
-	}
-	if text == "" {
-		text = post.Title
+	// if message is blank, forget the post
+	if post.Message == "" {
+		return nil
 	}
 
-	sourceURL := fmt.Sprintf("https://www.facebook.com/%s/posts/%s", feed.Identifier, post.Id)
+	sourceURL := fmt.Sprintf("https://www.facebook.com/%s/statuses/%s", feed.Identifier, post.Id)
 
 	id := strings.Split(post.Id, "_")
 
@@ -219,7 +217,7 @@ func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
 		FeedID:         feed.ID,
 		FeedIdentifier: feed.Identifier,
 		Timestamp:      milli.Timestamp(t),
-		Body:           text,
+		Body:           strings.TrimSpace(post.Message),
 		SourceType:     string(FeedTypeFacebook),
 		SourceURL:      sourceURL,
 		SourceID:       id[1],

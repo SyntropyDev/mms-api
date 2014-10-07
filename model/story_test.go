@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/ChimeraCoder/anaconda"
@@ -92,17 +93,8 @@ func TestAtom(t *testing.T) {
 }
 
 func TestFacebook(t *testing.T) {
-	b, err := ioutil.ReadFile("/Users/logan/go/src/github.com/SyntropyDev/mms-api/config/config.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	config := map[string]string{}
-	if err := json.Unmarshal(b, &config); err != nil {
-		t.Fatal(err)
-	}
-
-	app := facebook.New(config["facebookApiID"], config["facebookAppSecret"])
+	initConfig()
+	app := facebook.New(os.Getenv("facebookApiID"), os.Getenv("facebookAppSecret"))
 
 	app.RedirectUri = "http://syntropy.io"
 	session := app.Session(app.AppAccessToken())
@@ -115,7 +107,41 @@ func TestFacebook(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Print(string(j))
+
+	type fbookResp struct {
+		Data []struct {
+			Description string
+			Message     string
+			Story       string
+			Title       string
+		}
+	}
+
+	resp := &fbookResp{}
+	if err := json.Unmarshal(j, resp); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, data := range resp.Data {
+		fmt.Println(data.Message)
+	}
+}
+
+func initConfig() error {
+	b, err := ioutil.ReadFile("../config.json")
+	if err != nil {
+		return err
+	}
+
+	config := map[string]string{}
+	if err := json.Unmarshal(b, &config); err != nil {
+		return err
+	}
+
+	for key, value := range config {
+		os.Setenv(key, value)
+	}
+	return nil
 }
 
 func TestTwitter(t *testing.T) {
@@ -140,5 +166,9 @@ func TestTwitter(t *testing.T) {
 	tweets, err := api.GetUserTimeline(v)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	for _, tweet := range tweets {
+		fmt.Println(tweet)
 	}
 }
