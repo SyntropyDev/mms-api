@@ -1,17 +1,30 @@
 package model
 
 import (
+	"fmt"
+	"net/http"
+	"os"
 	"strings"
 	"time"
 
+	"code.google.com/p/go.crypto/bcrypt"
+
+	"github.com/SyntropyDev/httperr"
 	"github.com/SyntropyDev/milli"
+	"github.com/SyntropyDev/sqlutil"
 	"github.com/SyntropyDev/val"
 	"github.com/coopernurse/gorp"
+	"github.com/lann/squirrel"
+
+	"github.com/mailgun/mailgun-go"
 )
 
 const (
 	ObjectNameMember = "Member"
 	TableNameMember  = "members"
+
+	inviteEmailTemplate   = "You have been invited to Mobile Main Street!  Here is your temporary password: %s"
+	passwordResetTemplate = "Here is your temporary password: %s"
 )
 
 type Member struct {
@@ -21,6 +34,14 @@ type Member struct {
 	Deleted bool   `json:"deleted" merge:"true"`
 	Object  string `db:"-" json:"object"`
 
+	// auth user
+	Email        string `json:"email" merge:"true"`
+	Organizer    bool   `json:"-"`
+	Token        string `db:"-" json:"token,omitempty"`
+	Password     string `db:"-" json:"password,omitempty"`
+	PasswordHash string `json:"-"`
+
+	// member
 	Name        string    `json:"name" val:"nonzero" merge:"true"`
 	Address     string    `json:"address" merge:"true"`
 	Phone       string    `json:"phone" merge:"true"`
@@ -34,6 +55,62 @@ type Member struct {
 	Images      []string  `db:"-" json:"images"`
 	Hashtags    []string  `db:"-" json:"hashTags"`
 	Location    []float64 `db:"-" json:"location"`
+}
+
+func FindMember(s gorp.SqlExecutor, email string) (*Member, error) {
+	query := squirrel.Select("*").From(TableNameMember).
+		Where(squirrel.Eq{"email": email})
+	members := []*Member{}
+	if err := sqlutil.Select(s, query, &members); err != nil {
+		return nil, err
+	}
+
+	err := fmt.Errorf("no user for email")
+	if len(members) == 0 {
+		return nil, err
+	}
+
+	return members[0], nil
+}
+
+func AuthenticateMember(s gorp.SqlExecutor, email, password string) (*Member, error) {
+	err := fmt.Errorf("email / password invalid")
+	respErr := httperr.New(http.StatusUnauthorized, err.Error(), err)
+
+	member, err := FindMember(s, email)
+	if err != nil || !member.HasPassword(password) {
+		return nil, respErr
+	}
+
+	return member, nil
+}
+
+func (m *Member) ResetPassword() error {
+	m.SetPassword(NewAutoPassword())
+
+	// form invite email
+	body := fmt.Sprintf(passwordResetTemplate, m.Password)
+	recipient := fmt.Sprintf("%s <%s>", m.Name, m.Email)
+	message := mailgun.NewMessage(
+		"organizer@mobilemainst.com",
+		"Mobile Main Street Password Reset",
+		body, recipient)
+	return sendEmail(message)
+}
+
+func (m *Member) Invite(email string) error {
+	// set email and temp password
+	m.Email = email
+	m.SetPassword(NewAutoPassword())
+
+	// form invite email
+	body := fmt.Sprintf(inviteEmailTemplate, m.Password)
+	recipient := fmt.Sprintf("%s <%s>", m.Name, m.Email)
+	message := mailgun.NewMessage(
+		"organizer@mobilemainst.com",
+		"Mobile Main Street Invite",
+		body, recipient)
+	return sendEmail(message)
 }
 
 func (m *Member) ImagesSlice() []string {
@@ -62,17 +139,17 @@ func (m *Member) LocationCoords() []float64 {
 	return []float64{m.Latitude, m.Longitude}
 }
 
-// func (u *User) SetPassword(p *Password) {
-// 	u.Password = p.String()
-// 	u.PasswordHash = p.Hash()
-// }
+func (m *Member) SetPassword(p *Password) {
+	m.Password = p.String()
+	m.PasswordHash = p.Hash()
+}
 
-// func (u *User) HasPassword(password string) bool {
-// 	bHash := []byte(u.PasswordHash)
-// 	bPass := []byte(password)
-// 	err := bcrypt.CompareHashAndPassword(bHash, bPass)
-// 	return err == nil
-// }
+func (m *Member) HasPassword(password string) bool {
+	bHash := []byte(m.PasswordHash)
+	bPass := []byte(password)
+	err := bcrypt.CompareHashAndPassword(bHash, bPass)
+	return err == nil
+}
 
 func (m *Member) Validate() error {
 	if valid, errMap := val.Struct(m); !valid {
@@ -112,4 +189,15 @@ func (m *Member) TableId() int64 {
 
 func (m *Member) Delete() {
 	m.Deleted = true
+}
+
+// util
+
+func sendEmail(message *mailgun.Message) error {
+	gun := mailgun.NewMailgun(
+		os.Getenv("mailgunDomain"),
+		os.Getenv("mailgunPublicApiKey"),
+		os.Getenv("mailgunPrivateApiKey"))
+	_, _, err := gun.Send(message)
+	return err
 }
