@@ -42,16 +42,18 @@ type Member struct {
 	PasswordHash string `json:"-"`
 
 	// member
-	Name        string    `json:"name" val:"nonzero" merge:"true"`
-	Address     string    `json:"address" merge:"true"`
-	Phone       string    `json:"phone" merge:"true"`
-	Description string    `json:"description" merge:"true"`
-	Icon        string    `json:"icon" merge:"true"`
-	Website     string    `json:"website" merge:"true"`
-	Latitude    float64   `json:"-" merge:"true"`
-	Longitude   float64   `json:"-" merge:"true"`
-	ImagesRaw   string    `json:"-"`
-	HashtagsRaw string    `json:"-"`
+	Name        string  `json:"name" val:"nonzero" merge:"true"`
+	Address     string  `json:"address" merge:"true"`
+	Phone       string  `json:"phone" merge:"true"`
+	Description string  `json:"description" merge:"true"`
+	Icon        string  `json:"icon" merge:"true"`
+	Website     string  `json:"website" merge:"true"`
+	Latitude    float64 `json:"-" merge:"true"`
+	Longitude   float64 `json:"-" merge:"true"`
+	ImagesRaw   string  `json:"-"`
+	HashtagsRaw string  `json:"-"`
+
+	CategoryIds []int64   `db:"-" json:"categoryIds"`
 	Images      []string  `db:"-" json:"images"`
 	Hashtags    []string  `db:"-" json:"hashTags"`
 	Location    []float64 `db:"-" json:"location"`
@@ -161,11 +163,17 @@ func (m *Member) Validate() error {
 func (m *Member) PreInsert(s gorp.SqlExecutor) error {
 	m.Created = milli.Timestamp(time.Now())
 	m.Updated = milli.Timestamp(time.Now())
+	if err := m.updateCategoires(s); err != nil {
+		return err
+	}
 	return m.Validate()
 }
 
 func (m *Member) PreUpdate(s gorp.SqlExecutor) error {
 	m.Updated = milli.Timestamp(time.Now())
+	if err := m.updateCategoires(s); err != nil {
+		return err
+	}
 	return m.Validate()
 }
 
@@ -174,6 +182,34 @@ func (m *Member) PostGet(s gorp.SqlExecutor) error {
 	m.Hashtags = m.HashtagsSlice()
 	m.Location = m.LocationCoords()
 	m.Object = ObjectNameMember
+
+	catIds := []int64{}
+	catMems := []*CategoryMember{}
+	query := squirrel.Select("*").From(TableNameCategoryMember).
+		Where(squirrel.Eq{"memberID": m.ID})
+	sqlutil.Select(s, query, &catMems)
+	for _, catMem := range catMems {
+		catIds = append(catIds, catMem.CategoryID)
+	}
+	m.CategoryIds = catIds
+
+	return nil
+}
+
+func (m *Member) updateCategoires(s gorp.SqlExecutor) error {
+	// delete existing categories
+	format := "delete from " + TableNameCategoryMember + " where memberid = ?"
+	if _, err := s.Exec(format, m.ID); err != nil {
+		return err
+	}
+
+	// create new categories
+	for _, catId := range m.CategoryIds {
+		catMem := NewCategoryMember(catId, m.ID)
+		if err := s.Insert(catMem); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

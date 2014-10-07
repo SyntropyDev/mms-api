@@ -8,7 +8,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ChimeraCoder/anaconda"
 	"github.com/SyntropyDev/mms-api/model"
 	"github.com/huandu/facebook"
 	"github.com/jteeuwen/go-pkg-rss"
@@ -98,7 +97,7 @@ func TestFacebook(t *testing.T) {
 
 	app.RedirectUri = "http://syntropy.io"
 	session := app.Session(app.AppAccessToken())
-	result, err := session.Api("/syntropydevelopment/posts", facebook.GET, nil)
+	result, err := session.Api("/syntropydevelopment", facebook.GET, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,23 +107,49 @@ func TestFacebook(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	type fbookResp struct {
-		Data []struct {
-			Description string
-			Message     string
-			Story       string
-			Title       string
-		}
-	}
+	fmt.Println(string(j))
 
-	resp := &fbookResp{}
-	if err := json.Unmarshal(j, resp); err != nil {
+	// type fbookResp struct {
+	// 	Data []struct {
+	// 		Description string
+	// 		Message     string
+	// 		Story       string
+	// 		Title       string
+	// 	}
+	// }
+
+	// resp := &fbookResp{}
+	// if err := json.Unmarshal(j, resp); err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// for _, data := range resp.Data {
+	// 	fmt.Println(data.Message)
+	// }
+}
+
+func TestTwitter(t *testing.T) {
+	initConfig()
+	api := twitterAPI()
+
+	user, err := api.GetUsersShow("syntropydev", url.Values{})
+	if err != nil {
 		t.Fatal(err)
 	}
+	fmt.Println(user.ProfileImageURL)
 
-	for _, data := range resp.Data {
-		fmt.Println(data.Message)
-	}
+	// v := url.Values{}
+	// v.Set("screen_name", "dubvNOW")
+	// v.Set("include_rts", "false")
+
+	// tweets, err := api.GetUserTimeline(v)
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+
+	// for _, tweet := range tweets {
+	// 	fmt.Println(tweet)
+	// }
 }
 
 func initConfig() error {
@@ -142,33 +167,4 @@ func initConfig() error {
 		os.Setenv(key, value)
 	}
 	return nil
-}
-
-func TestTwitter(t *testing.T) {
-	b, err := ioutil.ReadFile("/Users/logan/go/src/github.com/SyntropyDev/mms-api/config/config.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	config := map[string]string{}
-	if err := json.Unmarshal(b, &config); err != nil {
-		t.Fatal(err)
-	}
-
-	anaconda.SetConsumerKey(config["twitterApiKey"])
-	anaconda.SetConsumerSecret(config["twitterApiSecret"])
-	api := anaconda.NewTwitterApi("", "")
-
-	v := url.Values{}
-	v.Set("screen_name", "dubvNOW")
-	v.Set("include_rts", "false")
-
-	tweets, err := api.GetUserTimeline(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, tweet := range tweets {
-		fmt.Println(tweet)
-	}
 }

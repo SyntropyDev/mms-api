@@ -2,8 +2,6 @@ package model
 
 import (
 	"fmt"
-	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -12,7 +10,6 @@ import (
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/SyntropyDev/val"
 	"github.com/coopernurse/gorp"
-	"github.com/huandu/facebook"
 	"github.com/jteeuwen/go-pkg-rss"
 	"github.com/jteeuwen/go-pkg-xmlx"
 )
@@ -21,98 +18,6 @@ const (
 	ObjectNameStory = "Story"
 	TableNameStory  = "stories"
 )
-
-type FeedType string
-
-const (
-	FeedTypeTwitter  FeedType = "twitter"
-	FeedTypeFacebook FeedType = "facebook"
-	FeedTypeRSS      FeedType = "rss"
-)
-
-func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
-	switch ft {
-	case FeedTypeRSS:
-		itemHandler := func(
-			fe *feeder.Feed,
-			ch *feeder.Channel,
-			newitems []*feeder.Item) {
-
-			for _, item := range newitems {
-				story := NewStoryRSS(m, f, item)
-				s.Insert(story)
-			}
-		}
-		feed := feeder.New(1, true, nil, itemHandler)
-		if err := feed.Fetch(f.Identifier, nil); err != nil {
-			fmt.Println(err)
-		}
-	case FeedTypeTwitter:
-		v := url.Values{}
-		v.Set("screen_name", f.Identifier)
-		v.Set("include_rts", "false")
-
-		anaconda.SetConsumerKey(os.Getenv("twitterApiKey"))
-		anaconda.SetConsumerSecret(os.Getenv("twitterApiSecret"))
-		api := anaconda.NewTwitterApi("", "")
-
-		tweets, err := api.GetUserTimeline(v)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		for _, t := range tweets {
-			story := NewStoryTwitter(m, f, t)
-			s.Insert(story)
-		}
-	case FeedTypeFacebook:
-		app := facebook.New(os.Getenv("facebookApiID"), os.Getenv("facebookAppSecret"))
-		app.RedirectUri = "http://syntropy.io"
-		session := app.Session(app.AppAccessToken())
-
-		route := fmt.Sprintf("/%s/posts", f.Identifier)
-		result, err := session.Api(route, facebook.GET, nil)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		posts := &FacebookPosts{}
-		if err := result.Decode(posts); err != nil {
-			fmt.Println(err)
-		}
-
-		for _, post := range posts.Data {
-			story := NewFacebookStory(m, f, post)
-			if story != nil {
-				s.Insert(story)
-			}
-		}
-	}
-	return nil
-}
-
-func FeedTypes() []FeedType {
-	return []FeedType{FeedTypeTwitter, FeedTypeFacebook, FeedTypeRSS}
-}
-
-type FacebookPosts struct {
-	Data []*FacebookPost
-}
-
-type FacebookPost struct {
-	CreatedAt string
-	Id        string
-	Picture   string
-	Link      string
-	Message   string
-	Story     string
-	Title     string
-	Likes     FacebookLikes
-}
-
-type FacebookLikes struct {
-	Data []interface{}
-}
 
 type Story struct {
 	ID      int64  `json:"id"`
@@ -136,6 +41,7 @@ type Story struct {
 	LinksRaw       string    `json:"-"`
 	ImagesRaw      string    `json:"-"`
 	HashtagsRaw    string    `json:"-"`
+	CategoryIds    []int64   `db:"-" json:"categoryIds"`
 	Links          []string  `db:"-" json:"links"`
 	Images         []string  `db:"-" json:"images"`
 	Hashtags       []string  `db:"-" json:"hashTags"`
@@ -369,7 +275,7 @@ func (story *Story) PostGet(s gorp.SqlExecutor) error {
 	story.Images = story.ImagesSlice()
 	story.Hashtags = story.HashtagsSlice()
 	story.Location = story.LocationCoords()
-	story.Object = ObjectNameMember
+	story.Object = ObjectNameStory
 	return nil
 }
 

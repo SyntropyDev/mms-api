@@ -1,12 +1,17 @@
 package model
 
 import (
+	"fmt"
+	"net/http"
+	"net/url"
 	"time"
 
+	"github.com/SyntropyDev/httperr"
 	"github.com/SyntropyDev/milli"
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/SyntropyDev/val"
 	"github.com/coopernurse/gorp"
+	"github.com/huandu/facebook"
 	"github.com/lann/squirrel"
 )
 
@@ -14,6 +19,12 @@ const (
 	ObjectNameFeed = "Feed"
 	TableNameFeed  = "feeds"
 )
+
+type fbookUser struct {
+	Cover struct {
+		Source string
+	}
+}
 
 type Feed struct {
 	ID      int64  `json:"id"`
@@ -58,32 +69,70 @@ func (f *Feed) Validate() error {
 	return nil
 }
 
-func (u *Feed) PreInsert(s gorp.SqlExecutor) error {
-	u.Created = milli.Timestamp(time.Now())
-	u.Updated = milli.Timestamp(time.Now())
-	return u.Validate()
+func (f *Feed) PreInsert(s gorp.SqlExecutor) error {
+	f.Created = milli.Timestamp(time.Now())
+	f.Updated = milli.Timestamp(time.Now())
+
+	icon := ""
+	switch FeedType(f.Type) {
+	case FeedTypeFacebook:
+		// get user from facebook api
+		session := facebookSession()
+		route := fmt.Sprintf("/%s", f.Identifier)
+		result, err := session.Api(route, facebook.GET, nil)
+		if err != nil {
+			return httperr.New(http.StatusBadRequest, "invalid facebook id", err)
+		}
+		// decode response
+		user := &fbookUser{}
+		if err := result.Decode(user); err != nil {
+			return err
+		}
+		icon = user.Cover.Source
+	case FeedTypeTwitter:
+		api := twitterAPI()
+		user, err := api.GetUsersShow(f.Identifier, url.Values{})
+		if err != nil {
+			return err
+		}
+		icon = user.ProfileImageURL
+	}
+
+	if icon != "" {
+		member := &Member{}
+		if err := sqlutil.SelectOneRelation(s, TableNameMember, f.MemberID, member); err != nil {
+			return err
+		}
+		member.Icon = icon
+
+		if _, err := s.Update(member); err != nil {
+			return err
+		}
+	}
+
+	return f.Validate()
 }
 
-func (u *Feed) PreUpdate(s gorp.SqlExecutor) error {
-	u.Updated = milli.Timestamp(time.Now())
-	return u.Validate()
+func (f *Feed) PreUpdate(s gorp.SqlExecutor) error {
+	f.Updated = milli.Timestamp(time.Now())
+	return f.Validate()
 }
 
-func (m *Feed) PostGet(s gorp.SqlExecutor) error {
-	m.Object = ObjectNameFeed
+func (f *Feed) PostGet(s gorp.SqlExecutor) error {
+	f.Object = ObjectNameFeed
 	return nil
 }
 
 // CrudResource interface
 
-func (u *Feed) TableName() string {
+func (f *Feed) TableName() string {
 	return TableNameFeed
 }
 
-func (u *Feed) TableId() int64 {
-	return u.ID
+func (f *Feed) TableId() int64 {
+	return f.ID
 }
 
-func (u *Feed) Delete() {
-	u.Deleted = true
+func (f *Feed) Delete() {
+	f.Deleted = true
 }
