@@ -41,11 +41,11 @@ type Feed struct {
 
 func ListenToFeeds(s gorp.SqlExecutor) error {
 	feeds := []*Feed{}
-	query := squirrel.Select("*").From(TableNameFeed)
+	query := squirrel.Select("*").From(TableNameFeed).
+		Where(squirrel.Eq{"Deleted": false})
 	if err := sqlutil.Select(s, query, &feeds); err != nil {
 		return err
 	}
-
 	for _, feed := range feeds {
 		if err := feed.UpdateStories(s); err != nil {
 			return err

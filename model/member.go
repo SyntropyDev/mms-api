@@ -14,6 +14,7 @@ import (
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/SyntropyDev/val"
 	"github.com/coopernurse/gorp"
+	"github.com/dchest/uniuri"
 	"github.com/lann/squirrel"
 
 	"github.com/mailgun/mailgun-go"
@@ -101,11 +102,6 @@ func (m *Member) ResetPassword() error {
 }
 
 func (m *Member) Invite(email string) error {
-	// set email and temp password
-	m.Email = email
-	m.SetPassword(NewAutoPassword())
-
-	// form invite email
 	body := fmt.Sprintf(inviteEmailTemplate, m.Password)
 	recipient := fmt.Sprintf("%s <%s>", m.Name, m.Email)
 	message := mailgun.NewMessage(
@@ -163,6 +159,9 @@ func (m *Member) Validate() error {
 func (m *Member) PreInsert(s gorp.SqlExecutor) error {
 	m.Created = milli.Timestamp(time.Now())
 	m.Updated = milli.Timestamp(time.Now())
+	if m.Email == "" {
+		m.Email = fmt.Sprintf("%s@example.com", uniuri.NewLen(8))
+	}
 	if err := m.updateCategoires(s); err != nil {
 		return err
 	}
@@ -178,10 +177,10 @@ func (m *Member) PreUpdate(s gorp.SqlExecutor) error {
 }
 
 func (m *Member) PostGet(s gorp.SqlExecutor) error {
+	m.Object = ObjectNameMember
 	m.Images = m.ImagesSlice()
 	m.Hashtags = m.HashtagsSlice()
 	m.Location = m.LocationCoords()
-	m.Object = ObjectNameMember
 
 	catIds := []int64{}
 	catMems := []*CategoryMember{}
@@ -232,8 +231,8 @@ func (m *Member) Delete() {
 func sendEmail(message *mailgun.Message) error {
 	gun := mailgun.NewMailgun(
 		os.Getenv("mailgunDomain"),
-		os.Getenv("mailgunPublicApiKey"),
-		os.Getenv("mailgunPrivateApiKey"))
+		os.Getenv("mailgunPrivateApiKey"),
+		os.Getenv("mailgunPublicApiKey"))
 	_, _, err := gun.Send(message)
 	return err
 }

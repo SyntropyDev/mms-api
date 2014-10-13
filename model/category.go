@@ -44,6 +44,11 @@ func (c *Category) PreUpdate(s gorp.SqlExecutor) error {
 	return c.Validate()
 }
 
+func (c *Category) PostGet(s gorp.SqlExecutor) error {
+	c.Object = ObjectNameCategory
+	return nil
+}
+
 // CrudResource interface
 
 func (c *Category) TableName() string {

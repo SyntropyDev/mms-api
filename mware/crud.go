@@ -17,13 +17,6 @@ import (
 	"github.com/lann/squirrel"
 )
 
-type ResponseType int
-
-const (
-	AlwaysOk ResponseType = iota
-	RejectInvalid
-)
-
 const (
 	KeyFields = "q-fields"
 )
@@ -87,7 +80,7 @@ func GetByID(m CrudResource) httperr.Handler {
 	}
 }
 
-func Create(m CrudResource, rType ResponseType) httperr.Handler {
+func Create(m CrudResource) httperr.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		dbmap, err := getDB()
 		defer dbmap.Db.Close()
@@ -105,7 +98,7 @@ func Create(m CrudResource, rType ResponseType) httperr.Handler {
 			return clientError(err)
 		}
 
-		if err := trans.Insert(mCopy); err != nil && rType == RejectInvalid {
+		if err := trans.Insert(mCopy); err != nil {
 			message := fmt.Sprintf("%s did not pass validation.", m.TableName())
 			return httperr.New(http.StatusBadRequest, message, err)
 		}

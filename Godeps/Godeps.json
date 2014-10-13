@@ -3,6 +3,16 @@
 	"GoVersion": "go1.3",
 	"Deps": [
 		{
+			"ImportPath": "code.google.com/p/go.crypto/bcrypt",
+			"Comment": "null-216",
+			"Rev": "41cd4647fccc72b0b79ef1bd1fe6735e718257cd"
+		},
+		{
+			"ImportPath": "code.google.com/p/go.crypto/blowfish",
+			"Comment": "null-216",
+			"Rev": "41cd4647fccc72b0b79ef1bd1fe6735e718257cd"
+		},
+		{
 			"ImportPath": "github.com/ChimeraCoder/anaconda",
 			"Rev": "47bdd6d45c8e335a34a5f4b94cd4ffbe1c172621"
 		},
@@ -44,6 +54,10 @@
 			"Rev": "31a7c02fabe8965c887cd243e381ce08328f3741"
 		},
 		{
+			"ImportPath": "github.com/dchest/uniuri",
+			"Rev": "9eb2cf09193567a3329b188db6e6f924a8e3347a"
+		},
+		{
 			"ImportPath": "github.com/garyburd/go-oauth/oauth",
 			"Rev": "e63dca786bb00b47f30463640b1fddf0e73f8376"
 		},
@@ -79,6 +93,14 @@
 		{
 			"ImportPath": "github.com/lann/squirrel",
 			"Rev": "f1c5650cbd5ad7333b757df5f23bb1a3eea9e3b0"
+		},
+		{
+			"ImportPath": "github.com/mailgun/mailgun-go",
+			"Rev": "3b7eda8f3bfd97aebc7f7342d12205930a218a98"
+		},
+		{
+			"ImportPath": "github.com/mbanzon/simplehttp",
+			"Rev": "6894781bc95b6a11c8b4e4a83eedb06c8a0b4536"
 		},
 		{
 			"ImportPath": "github.com/mndrix/ps",

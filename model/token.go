@@ -19,7 +19,6 @@ const (
 
 type Token struct {
 	ID        int64  `json:"id"`
-	AccountID int64  `json:"accountId" val:"nonzero"`
 	Created   int64  `json:"created" val:"nonzero"`
 	Updated   int64  `json:"updated" val:"nonzero"`
 	Deleted   bool   `json:"deleted" merge:"true"`
@@ -32,10 +31,10 @@ type Token struct {
 
 func ValidateToken(s gorp.SqlExecutor, memberID int64, token string) error {
 	query := squirrel.Select("*").From(TableNameToken).
-		Where(squirrel.Eq{"memberID": memberID, "value": token})
+		Where(squirrel.Eq{"MemberID": memberID, "Value": token})
 	tokens := []*Token{}
 	sqlutil.Select(s, query, &tokens)
-	if len(tokens) > 0 {
+	if len(tokens) == 0 {
 		return fmt.Errorf("token not found")
 	}
 	return nil

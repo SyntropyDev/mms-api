@@ -7,16 +7,13 @@ import (
 
 	"github.com/SyntropyDev/httperr"
 	"github.com/SyntropyDev/mms-api/model"
+	"github.com/SyntropyDev/sqlutil"
 )
 
 const (
 	authEmailKey = "auth-email"
 	authTokenKey = "auth-token"
 )
-
-type ResetPasswordReq struct {
-	Email string
-}
 
 func Auth(h httperr.Handler) httperr.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
@@ -41,9 +38,15 @@ func Auth(h httperr.Handler) httperr.Handler {
 	}
 }
 
-func ResetPasswordHandler() httperr.Handler {
+func Login() httperr.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
-		req := &ResetPasswordReq{}
+
+		type loginReq struct {
+			Email    string
+			Password string
+		}
+
+		req := &loginReq{}
 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 			return httperr.New(http.StatusBadRequest, err.Error(), err)
 		}
@@ -54,13 +57,205 @@ func ResetPasswordHandler() httperr.Handler {
 			return err
 		}
 
-		// return 200 no matter what
+		member, err := model.AuthenticateMember(dbmap, req.Email, req.Password)
+		if err != nil {
+			return err
+		}
+
+		token := &model.Token{
+			MemberID: member.ID,
+		}
+		if err := dbmap.Insert(token); err != nil {
+			return err
+		}
+
+		member.Token = token.Value
+		return json.NewEncoder(w).Encode(member)
+	}
+}
+
+func Invite() httperr.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		type inviteReq struct {
+			MemberID int64
+			Email    string
+		}
+
+		req := &inviteReq{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			return httperr.New(http.StatusBadRequest, err.Error(), err)
+		}
+
+		dbmap, err := getDB()
+		defer dbmap.Db.Close()
+		if err != nil {
+			return err
+		}
+
+		member := &model.Member{}
+		if err := sqlutil.SelectOneRelation(dbmap, model.TableNameMember, req.MemberID, member); err != nil {
+			return httperr.New(http.StatusBadRequest, "member not found", err)
+		}
+		member.SetPassword(model.NewAutoPassword())
+		member.Email = req.Email
+		if _, err := dbmap.Update(member); err != nil {
+			return err
+		}
+		if err := member.Invite(req.Email); err != nil {
+			return err
+		}
+		return json.NewEncoder(w).Encode(member)
+	}
+}
+
+func Signup() httperr.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		dbmap, err := getDB()
+		defer dbmap.Db.Close()
+		if err != nil {
+			return err
+		}
+
+		// check if the community already exits, if so prevent signup
+		coms := []*model.Community{}
+		dbmap.Select(&coms, "select * from communities")
+		if len(coms) > 0 {
+			err := errors.New("community already created")
+			return httperr.New(http.StatusBadRequest, err.Error(), err)
+		}
+
+		type signupReq struct {
+			Email         string
+			Password      string
+			Name          string
+			CommunityName string
+			Location      []float64
+			Description   string
+		}
+
+		req := &signupReq{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			return httperr.New(http.StatusBadRequest, err.Error(), err)
+		}
+
+		trans, err := dbmap.Begin()
+		if err != nil {
+			return err
+		}
+
+		member := &model.Member{
+			Email:     req.Email,
+			Organizer: true,
+			Name:      req.Name,
+		}
+		pword, err := model.NewPassword(req.Password)
+		if err != nil {
+			return httperr.New(http.StatusBadRequest, "password must be between 7 and 32 characters", err)
+		}
+		member.SetPassword(pword)
+
+		if err := trans.Insert(member); err != nil {
+			return err
+		}
+
+		com := &model.Community{
+			Name:        req.CommunityName,
+			Location:    req.Location,
+			Description: req.Description,
+		}
+		if err := trans.Insert(com); err != nil {
+			return err
+		}
+
+		categories := []*model.Category{
+			{Name: "Play Local"},
+			{Name: "Be Local"},
+			{Name: "Eat Local"},
+			{Name: "Shop Local"},
+		}
+		for _, cat := range categories {
+			if err := trans.Insert(cat); err != nil {
+				return err
+			}
+		}
+		if err := trans.Commit(); err != nil {
+			return err
+		}
+		return json.NewEncoder(w).Encode(member)
+	}
+}
+
+func ResetPasswordHandler() httperr.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+
+		type resetPasswordReq struct {
+			Email string
+		}
+
+		req := &resetPasswordReq{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			return httperr.New(http.StatusBadRequest, err.Error(), err)
+		}
+
+		dbmap, err := getDB()
+		defer dbmap.Db.Close()
+		if err != nil {
+			return err
+		}
+
 		member, err := model.FindMember(dbmap, req.Email)
+		// if member not found return 200 anyway
 		if err != nil {
 			return nil
 		}
-		member.ResetPassword()
-		dbmap.Update(member)
+		if err := member.ResetPassword(); err != nil {
+			return err
+		}
+		if _, err := dbmap.Update(member); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func ChangePasswordHandler() httperr.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+
+		type changePasswordReq struct {
+			OldPassword string
+			NewPassword string
+		}
+
+		req := &changePasswordReq{}
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			return httperr.New(http.StatusBadRequest, err.Error(), err)
+		}
+
+		dbmap, err := getDB()
+		defer dbmap.Db.Close()
+		if err != nil {
+			return err
+		}
+
+		email := r.URL.Query().Get(authEmailKey)
+		member, err := model.FindMember(dbmap, email)
+		if err != nil {
+			return err
+		}
+
+		if !member.HasPassword(req.OldPassword) {
+			err := errors.New("password invalid")
+			return httperr.New(http.StatusBadRequest, err.Error(), err)
+		}
+
+		pword, err := model.NewPassword(req.NewPassword)
+		if err != nil {
+			return httperr.New(http.StatusBadRequest, "password must be between 7 and 32 characters", err)
+		}
+		member.SetPassword(pword)
+		if _, err := dbmap.Update(member); err != nil {
+			return err
+		}
 		return nil
 	}
 }
