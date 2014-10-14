@@ -63,8 +63,6 @@ func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
 		return nil
 	}
 
-	sourceURL := fmt.Sprintf("https://www.facebook.com/%s/statuses/%s", feed.Identifier, post.Id)
-
 	id := strings.Split(post.Id, "_")
 
 	return &Story{
@@ -75,12 +73,12 @@ func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
 		Timestamp:      milli.Timestamp(t),
 		Body:           strings.TrimSpace(post.Message),
 		FeedType:       string(FeedTypeFacebook),
-		SourceURL:      sourceURL,
+		SourceURL:      post.Link,
 		SourceID:       id[1],
 		Latitude:       0.0,
 		Longitude:      0.0,
 		Score:          float64(len(post.Likes.Data)),
-		LinksRaw:       post.Link,
+		LinksRaw:       "",
 		HashtagsRaw:    "",
 		ImagesRaw:      post.Picture,
 	}
