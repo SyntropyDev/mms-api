@@ -8,6 +8,7 @@ import (
 	"github.com/SyntropyDev/httperr"
 	"github.com/SyntropyDev/mms-api/model"
 	"github.com/SyntropyDev/sqlutil"
+	"github.com/lann/squirrel"
 )
 
 const (
@@ -71,6 +72,30 @@ func LoginHandler() httperr.Handler {
 
 		member.Token = token.Value
 		return json.NewEncoder(w).Encode(member)
+	}
+}
+
+func LogoutHandler() httperr.Handler {
+	return func(w http.ResponseWriter, r *http.Request) error {
+		dbmap, err := getDB()
+		defer dbmap.Db.Close()
+		if err != nil {
+			return err
+		}
+
+		tokenValue := r.URL.Query().Get(authTokenKey)
+		query := squirrel.Select("*").
+			From(model.TableNameToken).
+			Where(squirrel.Eq{"Value": tokenValue})
+
+		tokens := []*model.Token{}
+		if err := sqlutil.Select(dbmap, query, &tokens); err != nil {
+			return err
+		}
+		for _, token := range tokens {
+			dbmap.Delete(token)
+		}
+		return nil
 	}
 }
 

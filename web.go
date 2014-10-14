@@ -28,16 +28,15 @@ func main() {
 	mware.SetGetDBConnectionFunc(db)
 
 	m := pat.New()
-	m.Get(prefix+"/community", mware.CommunityHandler())
-
-	// user
-	m.Post(prefix+"/login", mware.LoginHandler())
-	m.Post(prefix+"/signup", mware.SignupHandler())
-	m.Post(prefix+"/reset-password", mware.ResetPasswordHandler())
-	m.Post(prefix+"/invite", mware.Auth(mware.InviteHandler()))
-	m.Post(prefix+"/change-password", mware.Auth(mware.ChangePasswordHandler()))
 
 	// no auth routes
+	m.Get(prefix+"/community", mware.CommunityHandler())
+
+	m.Post(prefix+"/login", mware.LoginHandler())
+	m.Post(prefix+"/logout", mware.LogoutHandler())
+	m.Post(prefix+"/signup", mware.SignupHandler())
+	m.Post(prefix+"/reset-password", mware.ResetPasswordHandler())
+
 	m.Get(prefix+"/members", mware.GetAll(&model.Member{}))
 	m.Get(prefix+"/members/:id", mware.GetByID(&model.Member{}))
 
@@ -52,6 +51,9 @@ func main() {
 	m.Get(prefix+"/stories/:id", mware.GetByID(&model.Story{}))
 
 	// auth routes
+	m.Post(prefix+"/invite", mware.Auth(mware.InviteHandler()))
+	m.Post(prefix+"/change-password", mware.Auth(mware.ChangePasswordHandler()))
+
 	m.Post(prefix+"/members", mware.Auth(mware.Create(&model.Member{})))
 	m.Put(prefix+"/members/:id", mware.Auth(mware.UpdateByID(&model.Member{})))
 	m.Del(prefix+"/members/:id", mware.Auth(mware.DeleteByID(&model.Member{})))
@@ -65,6 +67,10 @@ func main() {
 	m.Del(prefix+"/categories/:id", mware.Auth(mware.DeleteByID(&model.Category{})))
 
 	m.Del(prefix+"/stories/:id", mware.Auth(mware.DeleteByID(&model.Story{})))
+
+	// cors
+	m.Options(prefix+"/:any", mware.CommunityHandler())
+	m.Options(prefix+"/:any1/:any2", mware.CommunityHandler())
 
 	go runInBackground(time.Minute*10, model.ListenToFeeds)
 	go runInBackground(time.Minute*5, model.DecayScores)
