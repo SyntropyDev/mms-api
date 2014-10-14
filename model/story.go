@@ -49,6 +49,7 @@ type Story struct {
 	Images             []string  `db:"-" json:"images"`
 	Hashtags           []string  `db:"-" json:"hashTags"`
 	Location           []float64 `db:"-" json:"location"`
+	MemberIcon         string    `db:"-" json:"memberIcon"`
 }
 
 func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
@@ -315,6 +316,14 @@ func (story *Story) PostGet(s gorp.SqlExecutor) error {
 	story.Images = story.ImagesSlice()
 	story.Hashtags = story.HashtagsSlice()
 	story.Location = story.LocationCoords()
+
+	m := &Member{}
+	if err := sqlutil.SelectOneRelation(s, TableNameMember, story.MemberID, m); err != nil {
+		return err
+	}
+
+	story.MemberIcon = m.Icon
+
 	return nil
 }
 
