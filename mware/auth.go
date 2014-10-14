@@ -38,7 +38,7 @@ func Auth(h httperr.Handler) httperr.Handler {
 	}
 }
 
-func Login() httperr.Handler {
+func LoginHandler() httperr.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 
 		type loginReq struct {
@@ -74,7 +74,7 @@ func Login() httperr.Handler {
 	}
 }
 
-func Invite() httperr.Handler {
+func InviteHandler() httperr.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		type inviteReq struct {
 			MemberID int64
@@ -108,7 +108,7 @@ func Invite() httperr.Handler {
 	}
 }
 
-func Signup() httperr.Handler {
+func SignupHandler() httperr.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		dbmap, err := getDB()
 		defer dbmap.Db.Close()

@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -29,13 +30,13 @@ type Story struct {
 
 	MemberID           int64     `json:"memberId" val:"nonzero"`
 	MemberName         string    `json:"memberName"`
-	FeedID             int64     `json:"memberId" val:"nonzero"`
+	FeedID             int64     `json:"feedId" val:"nonzero"`
 	FeedIdentifier     string    `json:"feedIdentifier"`
 	FeedType           string    `json:"feedType"`
 	Timestamp          int64     `json:"timestamp"`
 	Body               string    `json:"body"`
 	SourceURL          string    `json:"sourceUrl"`
-	SourceID           string    `json:"sourceID"`
+	SourceID           string    `json:"sourceId"`
 	Score              float64   `json:"score"`
 	Latitude           float64   `json:"-"`
 	Longitude          float64   `json:"-"`
@@ -178,7 +179,6 @@ func NewStoryRSS(member *Member, feed *Feed, item *feeder.Item) *Story {
 		SourceID:       sourceID,
 		Latitude:       0.0,
 		Longitude:      0.0,
-		Score:          0.0,
 		LinksRaw:       strings.Join(links, ","),
 		ImagesRaw:      strings.Join(images, ","),
 	}
@@ -247,7 +247,21 @@ func (story *Story) CalculateScore(s gorp.SqlExecutor) error {
 		score += 3.0
 	}
 
+	// randomize score
+	score += (10.0 * rand.Float64())
+
+	// increase score for timely posts
+	dur := milli.Time(story.Timestamp).Sub(milli.Time(f.LastRetrieved))
+	durScore := float64(dur / time.Hour)
+	if durScore > 12.0 {
+		durScore = 12.0
+	} else if durScore < 0.0 {
+		durScore = 0.0
+	}
+	score += durScore
+
 	story.Score += score
+
 	return nil
 }
 
@@ -283,6 +297,15 @@ func (story *Story) PostInsert(s gorp.SqlExecutor) error {
 	m.SetHashtags(hashtags)
 
 	s.Update(m)
+
+	feed := &Feed{}
+	if err := sqlutil.SelectOneRelation(s, TableNameFeed, story.FeedID, feed); err != nil {
+		return err
+	}
+	if story.Timestamp > feed.LastRetrieved {
+		feed.LastRetrieved = story.Timestamp
+		s.Update(feed)
+	}
 	return nil
 }
 
