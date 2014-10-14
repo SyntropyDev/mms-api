@@ -13,7 +13,6 @@ import (
 	"github.com/SyntropyDev/querystr"
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/coopernurse/gorp"
-	"github.com/gorilla/mux"
 	"github.com/lann/squirrel"
 )
 
@@ -70,9 +69,9 @@ func GetByID(m CrudResource) httperr.Handler {
 			return err
 		}
 
-		params := mux.Vars(r)
+		id := r.URL.Query().Get(":id")
 		mCopy := copyResource(m)
-		if err := GetID(dbmap, mCopy, params["id"]); err != nil {
+		if err := GetID(dbmap, mCopy, id); err != nil {
 			return err
 		}
 
@@ -118,9 +117,9 @@ func UpdateByID(m CrudResource) httperr.Handler {
 			return err
 		}
 
-		params := mux.Vars(r)
+		id := r.URL.Query().Get(":id")
 		mCopy := copyResource(m)
-		if err := GetID(dbmap, mCopy, params["id"]); err != nil {
+		if err := GetID(dbmap, mCopy, id); err != nil {
 			return err
 		}
 
@@ -149,9 +148,9 @@ func DeleteByID(m CrudResource) httperr.Handler {
 			return err
 		}
 
-		params := mux.Vars(r)
+		id := r.URL.Query().Get(":id")
 		mCopy := copyResource(m)
-		if err := GetID(dbmap, mCopy, params["id"]); err != nil {
+		if err := GetID(dbmap, mCopy, id); err != nil {
 			return err
 		}
 
