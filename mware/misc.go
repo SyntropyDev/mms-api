@@ -42,7 +42,7 @@ func TopStoriesHandler() httperr.Handler {
 
 		offset, _ := strconv.ParseUint(v.Get("q-offset"), 10, 64)
 
-		query := squirrel.Select("*").From(model.TableNameStory).OrderBy("Score desc, Timestamp desc").Limit(limit).Offset(offset)
+		query := squirrel.Select("*").From(model.TableNameStory).OrderBy("Score desc").Limit(limit).Offset(offset)
 		if len(memIDs) > 0 {
 			query = query.Where(squirrel.Eq{"memberId": memIDs})
 		}
