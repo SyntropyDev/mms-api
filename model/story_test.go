@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"testing"
 
-	"github.com/SyntropyDev/mms-api/model"
 	"github.com/huandu/facebook"
 	"github.com/jteeuwen/go-pkg-rss"
 )
@@ -53,43 +51,43 @@ var (
 
 func sPtr(s string) *string { return &s }
 
-func TestRSS(t *testing.T) {
-	m := &model.Member{ID: 1, Name: "Test"}
-	f := &model.Feed{ID: 1, Type: string(model.FeedTypeRSS), Identifier: feedRSS}
-	story := model.NewStoryRSS(m, f, itemRSS)
+// func TestRSS(t *testing.T) {
+// 	m := &model.Member{ID: 1, Name: "Test"}
+// 	f := &model.Feed{ID: 1, Type: string(model.FeedTypeRSS), Identifier: feedRSS}
+// 	story := model.NewStoryRSS(m, f, itemRSS)
 
-	if story.ImagesRaw != "http://www.techmeme.com/140920/i8.jpg" {
-		t.Fatal("image not found")
-	}
-	if story.LinksRaw != "http://www.techmeme.com/140920/p8#a140920p8" {
-		t.Fatal("links not found")
-	}
-	if story.Timestamp != 1411234206000 {
-		t.Fatal("timestamp incorrect")
-	}
-	if story.SourceID != "http://www.techmeme.com/140920/p8#a140920p8" {
-		t.Fatal("source id incorrect")
-	}
-}
+// 	if story.ImagesRaw != "http://www.techmeme.com/140920/i8.jpg" {
+// 		t.Fatal("image not found")
+// 	}
+// 	if story.LinksRaw != "http://www.techmeme.com/140920/p8#a140920p8" {
+// 		t.Fatal("links not found")
+// 	}
+// 	if story.Timestamp != 1411234206000 {
+// 		t.Fatal("timestamp incorrect")
+// 	}
+// 	if story.SourceID != "http://www.techmeme.com/140920/p8#a140920p8" {
+// 		t.Fatal("source id incorrect")
+// 	}
+// }
 
-func TestAtom(t *testing.T) {
-	m := &model.Member{ID: 1, Name: "Test"}
-	f := &model.Feed{ID: 1, Type: string(model.FeedTypeRSS), Identifier: feedATOM}
-	story := model.NewStoryRSS(m, f, itemATOM)
+// func TestAtom(t *testing.T) {
+// 	m := &model.Member{ID: 1, Name: "Test"}
+// 	f := &model.Feed{ID: 1, Type: string(model.FeedTypeRSS), Identifier: feedATOM}
+// 	story := model.NewStoryRSS(m, f, itemATOM)
 
-	if story.ImagesRaw != "http://cdn2.vox-cdn.com/uploads/chorus_image/image/39185966/nypd-police-department-station-stock_1020.0_standard_800.0.jpg" {
-		t.Fatal("image not found")
-	}
-	if story.LinksRaw != "http://www.theverge.com/2014/9/21/6672811/vr-typing-trainer-for-oculus-rift" {
-		t.Fatal("links not found")
-	}
-	if story.Timestamp != 1411283282000 {
-		t.Fatal("timestamp incorrect")
-	}
-	if story.SourceID != "http://www.theverge.com/2014/9/21/6663163/nypd-goes-back-to-twitter-school-after-photo-content-backfires" {
-		t.Fatal("source id incorrect")
-	}
-}
+// 	if story.ImagesRaw != "http://cdn2.vox-cdn.com/uploads/chorus_image/image/39185966/nypd-police-department-station-stock_1020.0_standard_800.0.jpg" {
+// 		t.Fatal("image not found")
+// 	}
+// 	if story.LinksRaw != "http://www.theverge.com/2014/9/21/6672811/vr-typing-trainer-for-oculus-rift" {
+// 		t.Fatal("links not found")
+// 	}
+// 	if story.Timestamp != 1411283282000 {
+// 		t.Fatal("timestamp incorrect")
+// 	}
+// 	if story.SourceID != "http://www.theverge.com/2014/9/21/6663163/nypd-goes-back-to-twitter-school-after-photo-content-backfires" {
+// 		t.Fatal("source id incorrect")
+// 	}
+// }
 
 func TestFacebook(t *testing.T) {
 	initConfig()
@@ -97,7 +95,7 @@ func TestFacebook(t *testing.T) {
 
 	app.RedirectUri = "http://syntropy.io"
 	session := app.Session(app.AppAccessToken())
-	result, err := session.Api("/syntropydevelopment", facebook.GET, nil)
+	result, err := session.Api("/303264176525122?fields=images", facebook.GET, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,29 +126,29 @@ func TestFacebook(t *testing.T) {
 	// }
 }
 
-func TestTwitter(t *testing.T) {
-	initConfig()
-	api := twitterAPI()
+// func TestTwitter(t *testing.T) {
+// 	initConfig()
+// 	api := twitterAPI()
 
-	user, err := api.GetUsersShow("syntropydev", url.Values{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(user.ProfileImageURL)
+// 	user, err := api.GetUsersShow("syntropydev", url.Values{})
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	fmt.Println(user.ProfileImageURL)
 
-	// v := url.Values{}
-	// v.Set("screen_name", "dubvNOW")
-	// v.Set("include_rts", "false")
+// 	v := url.Values{}
+// 	v.Set("screen_name", "dubvNOW")
+// 	v.Set("include_rts", "false")
 
-	// tweets, err := api.GetUserTimeline(v)
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
+// 	tweets, err := api.GetUserTimeline(v)
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	// for _, tweet := range tweets {
-	// 	fmt.Println(tweet)
-	// }
-}
+// 	for _, tweet := range tweets {
+// 		fmt.Println(tweet)
+// 	}
+// }
 
 func initConfig() error {
 	b, err := ioutil.ReadFile("../config.json")

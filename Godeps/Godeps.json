@@ -67,14 +67,6 @@
 			"Rev": "7094cf0331ed6bde3cd75aa5d1da0e7764b526c9"
 		},
 		{
-			"ImportPath": "github.com/gorilla/context",
-			"Rev": "14f550f51af52180c2eefed15e5fd18d63c0a64a"
-		},
-		{
-			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "14cafe28513321476c73967a5a4f3454b6129c46"
-		},
-		{
 			"ImportPath": "github.com/huandu/facebook",
 			"Rev": "b5a3d636d02b32fb86abfaae7b95ed563cff442d"
 		},

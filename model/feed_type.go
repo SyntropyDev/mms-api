@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/ChimeraCoder/anaconda"
+	"github.com/SyntropyDev/milli"
 	"github.com/coopernurse/gorp"
 	"github.com/huandu/facebook"
 	"github.com/jteeuwen/go-pkg-rss"
@@ -64,7 +65,11 @@ func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 
 		for _, t := range tweets {
 			story := NewStoryTwitter(m, f, t)
-			s.Insert(story)
+			if err := s.Insert(story); err == nil {
+				fmt.Printf("Added Twitter story for %s.  Date: %s Score: %f\n", m.Name, milli.Time(story.Timestamp).String(), story.Score)
+			} else {
+				fmt.Printf("Failed to add Twitter story for %s.  Error: %s\n", m.Name, err)
+			}
 		}
 	case FeedTypeFacebook:
 		session := facebookSession()
@@ -82,7 +87,11 @@ func (ft FeedType) GetStories(s gorp.SqlExecutor, m *Member, f *Feed) error {
 		for _, post := range posts.Data {
 			story := NewFacebookStory(m, f, post)
 			if story != nil {
-				s.Insert(story)
+				if err := s.Insert(story); err == nil {
+					fmt.Printf("Added Facebook story for %s.  Date: %s  Score: %f\n", m.Name, milli.Time(story.Timestamp).String(), story.Score)
+				} else {
+					fmt.Printf("Failed to add Facebook story for %s.  Error: %s\n", m.Name, err)
+				}
 			}
 		}
 	}
@@ -105,7 +114,19 @@ type FacebookPost struct {
 	Message   string
 	Story     string
 	Title     string
+	ObjectId  string
+	Type      string
 	Likes     FacebookLikes
+}
+
+type FacebookPhoto struct {
+	CreatedTime string `json:"created_time"`
+	Id          string `json:"id"`
+	Images      []struct {
+		Height int    `json:"height"`
+		Source string `json:"source"`
+		Width  int    `json:"width"`
+	} `json:"images"`
 }
 
 type FacebookLikes struct {

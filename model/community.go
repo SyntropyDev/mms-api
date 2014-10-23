@@ -14,6 +14,9 @@ import (
 const (
 	ObjectNameCommunity = "Community"
 	TableNameCommunity  = "communities"
+
+	RegistrationPolicyOpen   = "open"
+	RegistrationPolicyClosed = "closed"
 )
 
 type Community struct {
@@ -23,11 +26,12 @@ type Community struct {
 	Deleted bool   `json:"deleted" merge:"true"`
 	Object  string `db:"-" json:"object"`
 
-	Name        string    `json:"name" val:"nonzero" merge:"true"`
-	Latitude    float64   `json:"-" val:"lat"`
-	Longitude   float64   `json:"-" val:"lon"`
-	Description string    `json:"description" val:"nonzero"`
-	Location    []float64 `db:"-" json:"location" merge:"true"`
+	Name               string    `json:"name" val:"nonzero" merge:"true"`
+	Description        string    `json:"description" val:"nonzero"`
+	RegistrationPolicy string    `json:"registrationPolicy" val:"in(open,closed)"`
+	Latitude           float64   `json:"-" val:"lat"`
+	Longitude          float64   `json:"-" val:"lon"`
+	Location           []float64 `db:"-" json:"location" merge:"true"`
 }
 
 func (c *Community) Validate() error {

@@ -11,6 +11,7 @@ import (
 	"github.com/SyntropyDev/sqlutil"
 	"github.com/SyntropyDev/val"
 	"github.com/coopernurse/gorp"
+	"github.com/huandu/facebook"
 	"github.com/jteeuwen/go-pkg-rss"
 	"github.com/jteeuwen/go-pkg-xmlx"
 	"github.com/lann/squirrel"
@@ -63,7 +64,25 @@ func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
 		return nil
 	}
 
-	id := strings.Split(post.Id, "_")
+	urlParts := strings.Split(post.Link, "?")
+	if len(urlParts) > 0 {
+		post.Link = urlParts[0]
+	}
+
+	post.Picture = ""
+	if post.Type == "photo" {
+		session := facebookSession()
+		route := fmt.Sprintf("/%s?fields=images", post.ObjectId)
+		result, err := session.Api(route, facebook.GET, nil)
+		if err == nil {
+			image := &FacebookPhoto{}
+			if err := result.Decode(image); err == nil {
+				if len(image.Images) > 0 && !strings.Contains(image.Images[0].Source, "?") {
+					post.Picture = image.Images[0].Source
+				}
+			}
+		}
+	}
 
 	return &Story{
 		MemberID:       member.ID,
@@ -74,10 +93,10 @@ func NewFacebookStory(member *Member, feed *Feed, post *FacebookPost) *Story {
 		Body:           strings.TrimSpace(post.Message),
 		FeedType:       string(FeedTypeFacebook),
 		SourceURL:      post.Link,
-		SourceID:       id[1],
+		SourceID:       post.Id,
 		Latitude:       0.0,
 		Longitude:      0.0,
-		Score:          float64(len(post.Likes.Data)),
+		Score:          2,
 		LinksRaw:       "",
 		HashtagsRaw:    "",
 		ImagesRaw:      post.Picture,
@@ -232,9 +251,6 @@ func (story *Story) CalculateScore(s gorp.SqlExecutor) error {
 	if len(story.LinksSlice()) > 0 {
 		score += 2.0
 	}
-	if len(story.HashtagsSlice()) > 0 {
-		score += 4.0
-	}
 	if story.Latitude != 0.0 {
 		score += 10.0
 	}
@@ -275,6 +291,7 @@ func (story *Story) PreInsert(s gorp.SqlExecutor) error {
 	story.Created = milli.Timestamp(time.Now())
 	story.Updated = milli.Timestamp(time.Now())
 	story.LastDecayTimestamp = milli.Timestamp(time.Now())
+	story.CalculateScore(s)
 	return story.Validate()
 }
 
@@ -321,7 +338,7 @@ func (story *Story) PostGet(s gorp.SqlExecutor) error {
 	}
 
 	story.MemberIcon = m.Icon
-
+	story.CategoryIds = m.CategoryIds
 	return nil
 }
 

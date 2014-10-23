@@ -36,6 +36,7 @@ func main() {
 	m.Post(prefix+"/logout", mware.LogoutHandler())
 	m.Post(prefix+"/signup", mware.SignupHandler())
 	m.Post(prefix+"/reset-password", mware.ResetPasswordHandler())
+	// m.Post(prefix+"/request-invite", mware.RequestInviteHandler())
 
 	m.Get(prefix+"/members", mware.GetAll(&model.Member{}))
 	m.Get(prefix+"/members/:id", mware.GetByID(&model.Member{}))
@@ -141,6 +142,35 @@ func db() (*gorp.DbMap, error) {
 	return dbmap, nil
 }
 
+func initSQL() error {
+	db, err := sql.Open("mysql", os.Getenv("mysql"))
+	if err != nil {
+		return err
+	}
+	if _, err := db.Exec(sqlCreateCommunity); err != nil {
+		return err
+	}
+	if _, err := db.Exec(sqlCreateMembers); err != nil {
+		return err
+	}
+	if _, err := db.Exec(sqlCreateCategories); err != nil {
+		return err
+	}
+	if _, err := db.Exec(sqlCreateFeeds); err != nil {
+		return err
+	}
+	if _, err := db.Exec(sqlCreateStories); err != nil {
+		return err
+	}
+	if _, err := db.Exec(sqlCreateTokens); err != nil {
+		return err
+	}
+	if _, err := db.Exec(sqlCreateCategoryMembers); err != nil {
+		return err
+	}
+	return nil
+}
+
 const (
 	sqlCreateCommunity = `
 	CREATE TABLE communities(
@@ -238,7 +268,8 @@ const (
 		PRIMARY KEY (ID),
 		FOREIGN KEY (MemberID) REFERENCES members(ID),
 		FOREIGN KEY (FeedID) REFERENCES feeds(ID),
-		UNIQUE (FeedID, SourceID)
+		UNIQUE (Timestamp),
+		UNIQUE (SourceID)
 	);`
 
 	sqlCreateTokens = `
@@ -265,32 +296,3 @@ const (
 		FOREIGN KEY (MemberID) REFERENCES members(ID)
 	);`
 )
-
-func initSQL() error {
-	db, err := sql.Open("mysql", os.Getenv("mysql"))
-	if err != nil {
-		return err
-	}
-	if _, err := db.Exec(sqlCreateCommunity); err != nil {
-		return err
-	}
-	if _, err := db.Exec(sqlCreateMembers); err != nil {
-		return err
-	}
-	if _, err := db.Exec(sqlCreateCategories); err != nil {
-		return err
-	}
-	if _, err := db.Exec(sqlCreateFeeds); err != nil {
-		return err
-	}
-	if _, err := db.Exec(sqlCreateStories); err != nil {
-		return err
-	}
-	if _, err := db.Exec(sqlCreateTokens); err != nil {
-		return err
-	}
-	if _, err := db.Exec(sqlCreateCategoryMembers); err != nil {
-		return err
-	}
-	return nil
-}

@@ -99,6 +99,42 @@ func LogoutHandler() httperr.Handler {
 	}
 }
 
+// func RequestInviteHandler() httperr.Handler {
+// 	return func(w http.ResponseWriter, r *http.Request) error {
+
+// 		type requestInviteReq struct {
+// 			Name     string
+// 			Email    string
+// 			Password string
+// 		}
+
+// 		req := &requestInviteReq{}
+// 		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+// 			return httperr.New(http.StatusBadRequest, err.Error(), err)
+// 		}
+
+// 		dbmap, err := getDB()
+// 		defer dbmap.Db.Close()
+// 		if err != nil {
+// 			return err
+// 		}
+
+// 		coms := []*model.Community{}
+// 		if _, err := dbmap.Select(&coms, "select * from communities"); err != nil {
+// 			return err
+// 		}
+// 		community := coms[0]
+
+// 		if community.RegistrationPolicy == model.RegistrationPolicyOpen {
+// 			member := &model.Member{
+// 				Email:    req.Email,
+// 				Password: req.Password,
+// 			}
+// 		}
+// 		return nil
+// 	}
+// }
+
 func InviteHandler() httperr.Handler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		type inviteReq struct {
@@ -150,12 +186,13 @@ func SignupHandler() httperr.Handler {
 		}
 
 		type signupReq struct {
-			Email         string
-			Password      string
-			Name          string
-			CommunityName string
-			Location      []float64
-			Description   string
+			Email              string
+			Password           string
+			Name               string
+			CommunityName      string
+			RegistrationPolicy string
+			Location           []float64
+			Description        string
 		}
 
 		req := &signupReq{}
@@ -184,9 +221,10 @@ func SignupHandler() httperr.Handler {
 		}
 
 		com := &model.Community{
-			Name:        req.CommunityName,
-			Location:    req.Location,
-			Description: req.Description,
+			Name:               req.CommunityName,
+			Location:           req.Location,
+			Description:        req.Description,
+			RegistrationPolicy: req.RegistrationPolicy,
 		}
 		if err := trans.Insert(com); err != nil {
 			return err
